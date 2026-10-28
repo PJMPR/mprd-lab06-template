@@ -106,31 +106,61 @@ Utwórz projekt `transfers` z jednym plikiem `pom.xml`. Kod produkcyjny umieść
 
 **Diagram klas** przedstawia typy, ich odpowiedzialności i powiązania. Na tych zajęciach pomaga odczytać kontrakt kodu; nie wprowadzamy jeszcze pełnego modelu agregatów i repozytoriów.
 
-### 💬 Rozmowa projektanta z ekspertem · Przyjęcie dyspozycji
+### 💬 Rozmowa projektanta z ekspertem · „Przecież to tylko przelew”
 
-> 🧑‍💻 **Projektant:** Co dokładnie przyjmujemy dzisiaj?
+*Poniedziałek rano. Projektant otwiera laptop. Ekspert otwiera kawę. Oboje są przekonani, że za pięć minut wszystko będzie jasne.*
+
+> 🧑‍💻 **Projektant:** Przelew. Dwa numery rachunków, kwota, przycisk „Wyślij”. Do obiadu skończymy?
 >
-> 🧑‍💼 **Ekspert:** Dyspozycję przelewu w EUR, z rachunku aktywnego klienta na inny rachunek. Kwota musi być większa od zera.
+> 🧑‍💼 **Ekspert:** Zależy, o której jesz obiad. Zacznijmy od tego, że dzisiaj tylko przyjmujemy dyspozycję przelewu w EUR. Z aktywnego rachunku klienta na inny rachunek.
 >
-> 🧑‍💻 **Projektant:** Czy przyjęcie dyspozycji oznacza, że pieniądze dotarły już do odbiorcy?
+> 🧑‍💻 **Projektant:** Czyli po kliknięciu pokazuję zielony napis „Pieniądze u odbiorcy!”. Dorzucę konfetti.
 >
-> 🧑‍💼 **Ekspert:** Nie. Potwierdzamy przyjęcie polecenia. Rozliczenie nastąpi później; dzisiaj go nie modelujemy.
+> 🧑‍💼 **Ekspert:** Konfetti zachowaj. **Przyjęcie dyspozycji nie oznacza wykonania przelewu.** Potwierdzamy, że przyjęliśmy polecenie. Rozliczenie nastąpi później i dzisiaj się nim nie zajmujemy.
 >
-> 🧑‍💻 **Projektant:** Skąd wiemy, czy są środki?
+> 🧑‍💻 **Projektant:** Dobrze. A kwota? Zero euro też można wysłać? Taki przelew „pamiętam o tobie, ale budżet mam trudny”.
 >
-> 🧑‍💼 **Ekspert:** Dostajemy aktualną informację z obszaru rachunków. Chodzi o dostępne środki, nie samo saldo księgowe. Przy saldzie 1000 EUR i wcześniejszych rezerwacjach 300 EUR dostępne jest 700 EUR. Jeśli kwota przelewu jest równa dostępnym środkom, można go przyjąć. Nie obsługujemy debetu.
+> 🧑‍💼 **Ekspert:** Miły gest, ale nie u nas. **Kwota musi być większa od zera.** Zero i kwoty ujemne odrzucamy.
 >
-> 🧑‍💻 **Projektant:** A limit?
+> 🧑‍💻 **Projektant:** Ujemny przelew byłby ciekawy. Wysyłam minus sto i zarabiam sto.
 >
-> 🧑‍💼 **Ekspert:** Dostajemy pozostały limit dzienny. Kwota równa temu limitowi jest dozwolona. Przyjęcie zmniejsza zarówno dostępne środki, jak i pozostały limit o kwotę przelewu.
+> 🧑‍💼 **Ekspert:** Właśnie dlatego rozmawiamy, zanim zaczniesz pisać kod.
 >
-> 🧑‍💻 **Projektant:** Jeżeli przelew narusza kilka zasad, który powód pokazujemy?
+> 🧑‍💻 **Projektant:** A przelew na ten sam rachunek? Klient chciałby poczuć, że coś się dzieje z jego oszczędnościami.
 >
-> 🧑‍💼 **Ekspert:** Kolejno sprawdzamy: kwotę, różne rachunki, aktywność rachunku źródłowego, dostępne środki, limit. Zwracamy pierwszy powód odmowy.
+> 🧑‍💼 **Ekspert:** **Rachunek źródłowy i docelowy muszą być różne.** Przelew na ten sam rachunek odrzucamy. I jeszcze jedno: rachunek źródłowy musi być aktywny.
 >
-> 🧑‍💻 **Projektant:** Czy zmniejszamy środki od razu, przed sprawdzeniem limitu?
+> 🧑‍💻 **Projektant:** Teraz sprawdzam saldo. Jest tysiąc euro, klient wysyła osiemset. Zgadza się.
 >
-> 🧑‍💼 **Ekspert:** Nie. Najpierw wszystkie sprawdzenia. Przy odmowie nic się nie zmienia.
+> 🧑‍💼 **Ekspert:** Niekoniecznie. Saldo księgowe to nie to samo co **dostępne środki**. Jeżeli z tego tysiąca trzysta euro jest już zarezerwowane, klient ma do wykorzystania siedemset. Osiemset odrzucamy.
+>
+> 🧑‍💻 **Projektant:** Czyli aplikacja nie może być bardziej optymistyczna od stanu rachunku.
+>
+> 🧑‍💼 **Ekspert:** Dokładnie. Aktualne dostępne środki i informację o aktywności otrzymujemy z obszaru rachunków. Nie obsługujemy debetu. Jeśli klient ma dostępne siedemset euro, może zlecić dokładnie siedemset — o ile pozwala na to limit.
+>
+> 🧑‍💻 **Projektant:** Wiedziałem, że pojawi się „o ile”. Jaki limit?
+>
+> 🧑‍💼 **Ekspert:** **Pozostały limit dzienny.** Dostajemy jego aktualną wartość. Jeżeli zostało sześćset euro limitu, przelew na sześćset jest dozwolony, ale na sześćset euro i jeden cent już nie.
+>
+> 🧑‍💻 **Projektant:** Nawet ten jeden cent?
+>
+> 🧑‍💼 **Ekspert:** Ten jeden cent to bardzo dobry test jednostkowy.
+>
+> 🧑‍💻 **Projektant:** Przyjmujemy dwieście pięćdziesiąt euro. Co zmieniam?
+>
+> 🧑‍💼 **Ekspert:** **Zmniejszasz dostępne środki i pozostały limit dzienny o dwieście pięćdziesiąt euro.** Środki traktujemy jako zarezerwowane. Kolejna dyspozycja musi już uwzględniać obie zmiany.
+>
+> 🧑‍💻 **Projektant:** A jeśli klient jednocześnie nie ma środków i przekracza limit? Wyświetlę „Nie, bo nie”?
+>
+> 🧑‍💼 **Ekspert:** Zwracamy konkretny, **pierwszy powód odmowy**. Sprawdzamy kolejno: dodatnią kwotę, różne rachunki, aktywność rachunku źródłowego, dostępne środki, pozostały limit dzienny.
+>
+> 🧑‍💻 **Projektant:** To najpierw odejmę środki, potem sprawdzę limit, a jeśli się nie zgodzi, oddam pieniądze.
+>
+> 🧑‍💼 **Ekspert:** Wolałbym, żeby klient nie finansował nam walidacji. **Najpierw wszystkie sprawdzenia, dopiero potem zmiana stanu. Przy odmowie nie zmieniamy ani dostępnych środków, ani limitu.**
+>
+> 🧑‍💻 **Projektant:** Czyli jednak kilka reguł jest. Obiad przesuwam, konfetti usuwam.
+>
+> 🧑‍💼 **Ekspert:** Konfetti zostaw na zielone testy.
 
 ### 📋 Kontrakt ćwiczenia
 
