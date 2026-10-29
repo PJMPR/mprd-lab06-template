@@ -21,7 +21,7 @@ Materiał towarzyszy wykładowi [DDD: odkrywanie domeny](https://pjmpr.github.io
 
 **Domena** to obszar działalności, którego problemy rozwiązujemy. Tutaj jest nim bankowość internetowa.
 
-**Subdomena** to część domeny mająca własne cele, wiedzę i reguły biznesowe. W tym laboratorium podział jest dostarczony — nie musisz go samodzielnie odkrywać ani proponować alternatyw.
+**Subdomena** to część domeny mająca własne cele, wiedzę i reguły biznesowe.
 
 | Subdomena | Odpowiedzialność | Zakres dzisiaj |
 |---|---|---|
@@ -32,13 +32,12 @@ Materiał towarzyszy wykładowi [DDD: odkrywanie domeny](https://pjmpr.github.io
 | Powiadomienia | Dostarczanie informacji klientowi | Temat kolejnych zajęć |
 
 > [!NOTE]
-> Skupiamy się wyłącznie na **Przelewach**. Pozostałe subdomeny są kontekstem dla dalszych zajęć. Nie implementuj dzisiaj logowania, książki odbiorców, wysyłania wiadomości ani kompletnego prowadzenia rachunków.
+> Skupiamy się wyłącznie na **Przelewach**. 
 
-✅ **Rezultat:** wiesz, gdzie umieścić dzisiejszy kod i jakie odpowiedzialności pozostają poza jego zakresem.
 
 ---
 
-## 2. 🛠️ Przygotuj jeden projekt Java Maven
+## 2. 🛠️ Przygotuj projekt Java Maven
 
 ### 📖 Definicja
 
@@ -439,7 +438,7 @@ mvn test
 
 Bank wprowadza dodatkowy **limit pojedynczego przelewu do odbiorcy niezaufanego: 200 EUR**. Dla odbiorców zaufanych ten dodatkowy limit nie obowiązuje. Nadal obowiązują wszystkie wcześniejsze reguły, w tym dostępne środki i limit dzienny.
 
-Nową regułę sprawdzamy **na końcu**. Kwota dokładnie 200 EUR jest dozwolona dla niezaufanego odbiorcy. Informacja o zaufaniu pochodzi z subdomeny Odbiorcy, a nie z formularza dyspozycji. Na dzisiaj zasymulujesz tę informację w teście — nie implementujesz drugiej subdomeny.
+Nową regułę sprawdzamy **na końcu**. Kwota dokładnie 200 EUR jest dozwolona dla niezaufanego odbiorcy. Informacja o zaufaniu pochodzi z subdomeny Odbiorcy, a nie z formularza dyspozycji.
 
 ### ✍️ Zadanie 3 · Małe rozszerzenie modelu
 
@@ -456,5 +455,3 @@ Nową regułę sprawdzamy **na końcu**. Kwota dokładnie 200 EUR jest dozwolona
 
 ✅ **Rezultat:** zmieniony diagram, nowe testy i rozszerzona logika.
 
-> [!TIP]
-> Najpierw ukończ część podstawową. Eksperyment ma zająć ostatnie minuty zajęć; jeśli zabraknie czasu, dokończ go samodzielnie. Nie rozbudowuj dzisiaj książki odbiorców.
