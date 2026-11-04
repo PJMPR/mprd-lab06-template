@@ -1,457 +1,249 @@
-# 🏦 Bank od środka
-## Laboratorium 1 · Subdomena Przelewy
+# Bank od środka
 
-> **Rozmowa → reguły → diagram → testy → implementacja.**  
-> Dzisiaj implementujesz przyjmowanie dyspozycji przelewu. Podział aplikacji na subdomeny jest już ustalony.
+## Laboratorium 2 · Rachunki i środki: Entity oraz Value Object
 
-**Narzędzia:** Java 17 lub nowsza, Maven, JUnit 5, IDE.
+> **Rozmowa → decyzje modelowe → diagram → odblokowywanie testów → implementacja.**  
+> Tym razem modelujesz rachunek, jego środki, rezerwacje oraz historię zaksięgowanych operacji.
 
-Materiał towarzyszy wykładowi [DDD: odkrywanie domeny](https://pjmpr.github.io/MPR-lectures/lectures/04-ddd-domain-discovery.html). Na kolejnych laboratoriach zajmiemy się następnymi subdomenami tego samego banku.
+**Narzędzia:** Java 17+, Maven, JUnit 5, IDE.  
+**Pakiet:** `pl.edu.banklab.accounts`.
 
-> [!IMPORTANT]
-> Reguły dotyczą fikcyjnego banku edukacyjnego. Przyjęcie dyspozycji nie oznacza jeszcze wykonania przelewu ani rozliczenia między rachunkami.
-
-**Oznaczenia:** 📖 definicja · 💬 rozmowa · ✍️ zadanie · ✅ rezultat · 🧪 sprawdzenie.
-
----
-
-## 1. 🧩 Gotowy podział aplikacji
-
-### 📖 Definicje
-
-**Domena** to obszar działalności, którego problemy rozwiązujemy. Tutaj jest nim bankowość internetowa.
-
-**Subdomena** to część domeny mająca własne cele, wiedzę i reguły biznesowe.
-
-| Subdomena | Odpowiedzialność | Zakres dzisiaj |
-|---|---|---|
-| Dostęp do bankowości | Logowanie i dostęp klienta do aplikacji | Temat kolejnych zajęć |
-| Rachunki i środki | Prowadzenie rachunków, dostępne środki i rezerwacje | Temat kolejnych zajęć |
-| **Przelewy** | **Przyjmowanie dyspozycji i reguły ich obsługi** | **Diagram, testy i implementacja** |
-| Odbiorcy | Książka odbiorców i oznaczenie zaufania | Temat kolejnych zajęć |
-| Powiadomienia | Dostarczanie informacji klientowi | Temat kolejnych zajęć |
-
-> [!NOTE]
-> Skupiamy się wyłącznie na **Przelewach**. 
-
-
----
-
-## 2. 🛠️ Przygotuj projekt Java Maven
-
-### 📖 Definicja
-
-**Projekt Maven** opisuje budowanie kodu, jego zależności i sposób uruchamiania testów w pliku `pom.xml`. Dzisiaj tworzymy jeden prosty projekt dla subdomeny Przelewy.
-
-### ✍️ Zadanie 1
-
-Utwórz projekt `transfers` z jednym plikiem `pom.xml`. Kod produkcyjny umieść w `src/main/java`, a testy w `src/test/java`. Używamy pakietu `pl.edu.banklab.transfers`.
-
-**`pom.xml`:**
-
-```xml
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-    <groupId>pl.edu.banklab</groupId>
-    <artifactId>transfers</artifactId>
-    <version>1.0-SNAPSHOT</version>
-    <properties>
-        <maven.compiler.release>17</maven.compiler.release>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-    <dependencies>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <version>5.10.3</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.13.0</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.2.5</version>
-            </plugin>
-        </plugins>
-    </build>
-</project>
-```
-
-> [!NOTE]
-> Pozostałe subdomeny pozostają na razie opisem obszarów banku. Ich kod oraz ewentualny podział projektu dodamy w kolejnych dokumentach. Dzisiejszy przykład działa lokalnie, bez Springa, bazy danych i REST.
-
-✅ **Rezultat:** w katalogu zawierającym `pom.xml` polecenie `mvn test` kończy się poprawnie — na razie bez testów.
-
----
-
-## 3. 📐 Od rozmowy do modelu przelewu
-
-### 📖 Definicje
-
-**Ubiquitous Language — wspólny język** to uzgodnione pojęcia używane w rozmowie, dokumentacji, testach i kodzie. Dla tego ćwiczenia kluczowe są „dyspozycja”, „przyjęcie”, „dostępne środki” i „pozostały limit”.
-
-**Model domenowy** to celowe uproszczenie wiedzy potrzebnej do rozwiązania konkretnego problemu. Nie musi odwzorowywać całego banku.
-
-**Komenda** wyraża intencję wykonania działania. **Zdarzenie domenowe** opisuje istotny fakt, który już nastąpił. **Reguła biznesowa** określa warunek lub konsekwencję działania.
-
-**Diagram klas** przedstawia typy, ich odpowiedzialności i powiązania. Na tych zajęciach pomaga odczytać kontrakt kodu; nie wprowadzamy jeszcze pełnego modelu agregatów i repozytoriów.
-
-### 💬 Rozmowa projektanta z ekspertem · „Przecież to tylko przelew”
-
-*Poniedziałek rano. Projektant otwiera laptop. Ekspert otwiera kawę. Oboje są przekonani, że za pięć minut wszystko będzie jasne.*
-
-> 🧑‍💻 **Projektant:** Przelew. Dwa numery rachunków, kwota, przycisk „Wyślij”. Do obiadu skończymy?
->
-> 🧑‍💼 **Ekspert:** Zależy, o której jesz obiad. Zacznijmy od tego, że dzisiaj tylko przyjmujemy dyspozycję przelewu w EUR. Z aktywnego rachunku klienta na inny rachunek.
->
-> 🧑‍💻 **Projektant:** Czyli po kliknięciu pokazuję zielony napis „Pieniądze u odbiorcy!”. Dorzucę konfetti.
->
-> 🧑‍💼 **Ekspert:** Konfetti zachowaj. **Przyjęcie dyspozycji nie oznacza wykonania przelewu.** Potwierdzamy, że przyjęliśmy polecenie. Rozliczenie nastąpi później i dzisiaj się nim nie zajmujemy.
->
-> 🧑‍💻 **Projektant:** Dobrze. A kwota? Zero euro też można wysłać? Taki przelew „pamiętam o tobie, ale budżet mam trudny”.
->
-> 🧑‍💼 **Ekspert:** Miły gest, ale nie u nas. **Kwota musi być większa od zera.** Zero i kwoty ujemne odrzucamy.
->
-> 🧑‍💻 **Projektant:** Ujemny przelew byłby ciekawy. Wysyłam minus sto i zarabiam sto.
->
-> 🧑‍💼 **Ekspert:** Właśnie dlatego rozmawiamy, zanim zaczniesz pisać kod.
->
-> 🧑‍💻 **Projektant:** A przelew na ten sam rachunek? Klient chciałby poczuć, że coś się dzieje z jego oszczędnościami.
->
-> 🧑‍💼 **Ekspert:** **Rachunek źródłowy i docelowy muszą być różne.** Przelew na ten sam rachunek odrzucamy. I jeszcze jedno: rachunek źródłowy musi być aktywny.
->
-> 🧑‍💻 **Projektant:** Teraz sprawdzam saldo. Jest tysiąc euro, klient wysyła osiemset. Zgadza się.
->
-> 🧑‍💼 **Ekspert:** Niekoniecznie. Saldo księgowe to nie to samo co **dostępne środki**. Jeżeli z tego tysiąca trzysta euro jest już zarezerwowane, klient ma do wykorzystania siedemset. Osiemset odrzucamy.
->
-> 🧑‍💻 **Projektant:** Czyli aplikacja nie może być bardziej optymistyczna od stanu rachunku.
->
-> 🧑‍💼 **Ekspert:** Dokładnie. Aktualne dostępne środki i informację o aktywności otrzymujemy z obszaru rachunków. Nie obsługujemy debetu. Jeśli klient ma dostępne siedemset euro, może zlecić dokładnie siedemset — o ile pozwala na to limit.
->
-> 🧑‍💻 **Projektant:** Wiedziałem, że pojawi się „o ile”. Jaki limit?
->
-> 🧑‍💼 **Ekspert:** **Pozostały limit dzienny.** Dostajemy jego aktualną wartość. Jeżeli zostało sześćset euro limitu, przelew na sześćset jest dozwolony, ale na sześćset euro i jeden cent już nie.
->
-> 🧑‍💻 **Projektant:** Nawet ten jeden cent?
->
-> 🧑‍💼 **Ekspert:** Ten jeden cent to bardzo dobry test jednostkowy.
->
-> 🧑‍💻 **Projektant:** Przyjmujemy dwieście pięćdziesiąt euro. Co zmieniam?
->
-> 🧑‍💼 **Ekspert:** **Zmniejszasz dostępne środki i pozostały limit dzienny o dwieście pięćdziesiąt euro.** Środki traktujemy jako zarezerwowane. Kolejna dyspozycja musi już uwzględniać obie zmiany.
->
-> 🧑‍💻 **Projektant:** A jeśli klient jednocześnie nie ma środków i przekracza limit? Wyświetlę „Nie, bo nie”?
->
-> 🧑‍💼 **Ekspert:** Zwracamy konkretny, **pierwszy powód odmowy**. Sprawdzamy kolejno: dodatnią kwotę, różne rachunki, aktywność rachunku źródłowego, dostępne środki, pozostały limit dzienny.
->
-> 🧑‍💻 **Projektant:** To najpierw odejmę środki, potem sprawdzę limit, a jeśli się nie zgodzi, oddam pieniądze.
->
-> 🧑‍💼 **Ekspert:** Wolałbym, żeby klient nie finansował nam walidacji. **Najpierw wszystkie sprawdzenia, dopiero potem zmiana stanu. Przy odmowie nie zmieniamy ani dostępnych środków, ani limitu.**
->
-> 🧑‍💻 **Projektant:** Czyli jednak kilka reguł jest. Obiad przesuwam, konfetti usuwam.
->
-> 🧑‍💼 **Ekspert:** Konfetti zostaw na zielone testy.
-
-### 📋 Kontrakt ćwiczenia
-
-| Kolejność | Warunek odmowy | Wynik |
-|---|---|---|
-| 1 | Kwota ≤ 0 | `INVALID_AMOUNT` |
-| 2 | Rachunek źródłowy jest taki sam jak docelowy | `SAME_ACCOUNT` |
-| 3 | Rachunek źródłowy jest nieaktywny | `ACCOUNT_INACTIVE` |
-| 4 | Kwota > dostępne środki | `INSUFFICIENT_FUNDS` |
-| 5 | Kwota > pozostały limit dzienny | `DAILY_LIMIT_EXCEEDED` |
-| — | Wszystkie warunki spełnione | `ACCEPTED` i zmniejszenie obu wartości |
-
-**Założenia wejściowe:** identyfikatory są niepustymi napisami, kwoty są podane w **centach** jako `long` (**100 centów = 1 EUR**), dostępne środki i limit są nieujemne. Nie implementujemy IBAN, kursów walut, opłat, zmiany daty ani współbieżności.
+Materiał towarzyszy wykładowi [DDD: taktyczne building blocks](https://pjmpr.github.io/MPR-lectures/lectures/05-ddd-building-blocks.html). Ćwiczenie skupia się na encjach, Value Objects, zachowaniu i niezmiennikach. Nie projektujemy jeszcze repozytoriów, bazy danych ani pełnych granic agregatów.
 
 > [!IMPORTANT]
-> `AccountFunds` jest lokalnym, uproszczonym modelem informacji potrzebnych przelewom. Na dziś przechowuje środki w pamięci i symuluje ich rezerwowanie. Nie stanowi kompletnej implementacji subdomeny Rachunki. W produkcji sprawdzenie i rezerwacja wymagałyby spójnego mechanizmu odpornego na równoczesne operacje.
+> Dostarczone klasy są szkieletem, a wszystkie testy mają początkowo adnotację `@Disabled` z opisem sprawdzanego zachowania. Odblokowuj po jednym teście, doprowadzaj go do zielonego stanu i dopiero wtedy przechodź do następnego. To zamierzony tok TDD, a nie wyjątkowo spokojny dzień w banku.
 
-### 🗺️ Dostarczony diagram
+---
+
+## 1. Cel zajęć
+
+Po wykonaniu zadania potrafisz:
+
+- rozpoznać obiekt wymagający tożsamości i cyklu życia;
+- zaprojektować niemutowalny Value Object, który nie dopuszcza błędnej wartości;
+- odróżnić równość encji od równości wartości;
+- umieścić reguły zmiany salda w modelu, zamiast w klasie `AccountService`;
+- zachować historię tego samego rachunku mimo zmian jego stanu;
+- przełożyć przykłady z rozmowy na testy jednostkowe.
+
+## 2. Czy historia operacji jest osobną subdomeną?
+
+**W tym ćwiczeniu — nie.** Historia zaksięgowanych uznań i obciążeń jest częścią języka oraz cyklu życia rachunku. Bez niej trudno odpowiedzieć, dlaczego saldo ma daną wartość. `AccountOperation` należy więc do subdomeny **Rachunki i środki**.
+
+Granica może się zmienić. Osobny kontekst byłby uzasadniony, gdyby pojawiły się niezależne potrzeby: wieloletnie archiwum, raporty regulacyjne, wyszukiwanie operacji ze wszystkich produktów, generowanie wyciągów czy inny model retencji. Dzisiaj tego nie potrzebujemy. Model jest hipotezą, nie umową podpisaną z przyszłością.
+
+Rozróżniamy:
+
+| W zakresie | Poza zakresem |
+|---|---|
+| Historia zaksięgowanych uznań i obciążeń jednego rachunku | Logi techniczne i audyt bezpieczeństwa |
+| Powiązanie operacji z rachunkiem | Raporty przekrojowe między klientami |
+| Kolejność operacji w pamięci | Wyciągi PDF, filtrowanie i paginacja |
+| Rezerwowanie, anulowanie i rozliczanie środków | Trwałość, współbieżność i integracja z księgą główną |
+
+---
+
+## 3. Rozmowa projektanta z ekspertem · „Saldo to przecież jedna liczba”
+
+*Projektant przynosi diagram z jedną klasą i czternastoma setterami. Ekspert przynosi kawę. Tylko jedno z nich przetrwa spotkanie bez zmian.*
+
+> **Projektant:** Rachunek ma `String id` i `long balance`. Dwa pola, jeden setter, kwadrans pracy.
+>
+> **Ekspert:** Ten sam rachunek może mieć dziś sto złotych, jutro tysiąc, a w piątek smutne trzy złote. Nadal jest tym samym rachunkiem.
+>
+> **Projektant:** Czyli `equals` po wszystkich polach odpada, bo po wypłacie rachunek przestanie być równy samemu sobie. Brzmi jak kryzys tożsamości.
+>
+> **Ekspert:** Tożsamość daje `AccountId`. Saldo opisuje stan, nie tożsamość.
+>
+> **Projektant:** To może wszędzie `long` w groszach? Minus pięć złotych też się zmieści.
+>
+> **Ekspert:** `Money` ma walutę i nieujemną kwotę. Dwie kwoty są równe, gdy mają tę samą liczbę groszy i walutę. Nie mają osobnej historii ani numeru seryjnego.
+>
+> **Projektant:** Czyli `Money` to Value Object: niemutowalny, równy po wartości i poprawny od chwili utworzenia.
+>
+> **Ekspert:** Tak. I nie dodawaj metody `setAmount`, chyba że chcesz, aby sto złotych po cichu uznało się za dwieście.
+>
+> **Projektant:** Klient płaci 80 PLN. Odejmuję od salda?
+>
+> **Ekspert:** Najpierw rezerwujesz środki. Saldo księgowe się nie zmienia, ale dostępne środki maleją. Potem rezerwację można rozliczyć albo anulować.
+>
+> **Projektant:** Czy rezerwacja „50 PLN” jest po prostu wartością?
+>
+> **Ekspert:** Nie. Rezerwację rozpoznajemy po `ReservationId`, śledzimy jej cykl życia i możemy ją rozliczyć tylko raz. Dwie rezerwacje tej samej kwoty nie są tą samą rezerwacją.
+>
+> **Projektant:** A przy rozliczeniu tworzę obciążenie w historii?
+>
+> **Ekspert:** Tak. Operacja ma własne `OperationId`, rodzaj, kwotę i opis. Dwa zakupy po 20 PLN to nadal dwie operacje.
+>
+> **Projektant:** Uznanie działa podobnie, tylko pieniądze idą w przyjemniejszą stronę?
+>
+> **Ekspert:** Uznanie od razu zwiększa saldo i dostępne środki oraz trafia do historii. Kwota musi być dodatnia.
+>
+> **Projektant:** A wypłata bez wcześniejszej rezerwacji?
+>
+> **Ekspert:** W tym modelu jej nie ma. Najpierw rezerwacja, potem rozliczenie. Dzięki temu kod mówi językiem procesu, a nie językiem odejmowania.
+>
+> **Projektant:** Mogę zarezerwować więcej niż dostępne środki i liczyć na piątkowy przelew?
+>
+> **Ekspert:** Bank może liczyć odsetki, ale model nie liczy na cuda. Taką próbę odrzucamy bez zmiany stanu.
+>
+> **Projektant:** A jeśli dwa razy wyślę to samo `OperationId`?
+>
+> **Ekspert:** Odrzucamy duplikat. Historia nie może dwa razy opowiadać tego samego faktu tylko dlatego, że sieć dostała czkawki.
+>
+> **Projektant:** To może wystawić `List<AccountOperation>` i pozwolić aplikacji dopisywać?
+>
+> **Ekspert:** Nie. Rachunek sam chroni historię. Z zewnątrz dostajesz widok tylko do odczytu.
+>
+> **Projektant:** Rozumiem. Usuwam setter salda.
+>
+> **Ekspert:** Zapiszmy datę. To ważny moment w historii projektu.
+
+### Kontrakt ćwiczenia
+
+1. `Account` jest encją, a jego równość zależy wyłącznie od `AccountId`.
+2. `FundsReservation` jest encją identyfikowaną przez `ReservationId`; ma stan `ACTIVE`, `SETTLED` albo `CANCELLED`.
+3. `Money` i identyfikatory są niemutowalnymi Value Objects.
+4. Obsługujemy wyłącznie `PLN`. Kwoty przechowujemy w groszach jako `long`.
+5. `Money` nie może być ujemne; operacje `credit` i `reserve` wymagają kwoty dodatniej.
+6. Uznanie zwiększa saldo księgowe i dostępne środki oraz dopisuje `CREDIT` do historii.
+7. Rezerwacja zmniejsza tylko dostępne środki. Nie trafia do historii zaksięgowanych operacji.
+8. Anulowanie aktywnej rezerwacji przywraca dostępne środki.
+9. Rozliczenie aktywnej rezerwacji zmniejsza saldo księgowe, nie zmienia ponownie środków dostępnych i dopisuje `DEBIT` do historii.
+10. Nie można anulować ani rozliczyć tej samej rezerwacji ponownie.
+11. Nie można powtórzyć `OperationId` ani `ReservationId` na tym samym rachunku.
+12. Odrzucona operacja nie zmienia salda, rezerwacji ani historii.
+
+---
+
+## 4. Decyzje modelowe
+
+| Typ | Building block | Dlaczego |
+|---|---|---|
+| `Account` | Entity | Zachowuje tożsamość podczas zmian salda i historii |
+| `FundsReservation` | Entity | Ma własne ID i cykl życia |
+| `AccountOperation` | Entity | Dwa identyczne kwotowo zapisy mogą oznaczać dwa różne fakty |
+| `AccountId`, `OperationId`, `ReservationId` | Value Object | Nadają znaczenie identyfikatorom i są równe po wartości |
+| `Money` | Value Object | Jest niemutowalne, waliduje kwotę i ma równość strukturalną |
+| `OperationType`, `ReservationStatus` | Enum | Zamknięte zbiory nazw domenowych |
+
+> [!NOTE]
+> Nie tworzymy `AccountService`, repozytorium ani zdarzeń domenowych tylko po to, by diagram wyglądał poważniej. Zachowanie, które zmienia stan jednego rachunku i broni jego reguł, należy dziś do `Account`.
+
+## 5. Diagram klas
 
 ```mermaid
 classDiagram
     direction TB
-    class TransferService {
-        +TransferService(AccountFunds funds, DailyTransferLimit limit)
-        +accept(RequestTransferCommand command) TransferDecision
+
+    class Account {
+        <<Entity>>
+        -AccountId id
+        -Money bookedBalance
+        -List~AccountOperation~ history
+        -List~FundsReservation~ reservations
+        +open(AccountId id) Account$
+        +credit(OperationId id, Money amount, String description) void
+        +reserve(ReservationId id, Money amount) void
+        +cancel(ReservationId id) void
+        +settle(ReservationId reservationId, OperationId operationId, String description) void
+        +bookedBalance() Money
+        +availableFunds() Money
+        +history() List~AccountOperation~
     }
-    class RequestTransferCommand {
-        <<record>>
-        +String targetAccountId
+    class AccountOperation {
+        <<Entity>>
+        +OperationId id
+        +OperationType type
+        +Money amount
+        +String description
+    }
+    class FundsReservation {
+        <<Entity>>
+        +ReservationId id
+        +Money amount
+        +ReservationStatus status
+        +cancel() void
+        +settle() void
+    }
+    class Money {
+        <<Value Object>>
         +long amountInCents
+        +Currency currency
+        +pln(long cents) Money$
+        +plus(Money other) Money
+        +minus(Money other) Money
     }
-    class TransferDecision {
+    class AccountId {
+        <<Value Object>>
+        +String value
+    }
+    class OperationId {
+        <<Value Object>>
+        +String value
+    }
+    class ReservationId {
+        <<Value Object>>
+        +String value
+    }
+    class OperationType {
         <<enumeration>>
-        ACCEPTED
-        INVALID_AMOUNT
-        SAME_ACCOUNT
-        ACCOUNT_INACTIVE
-        INSUFFICIENT_FUNDS
-        DAILY_LIMIT_EXCEEDED
+        CREDIT
+        DEBIT
     }
-    class AccountFunds {
-        +AccountFunds(String accountId, boolean active, long availableInCents)
-        +accountId() String
-        +active() boolean
-        +availableInCents() long
-        +reserve(long amountInCents) void
+    class ReservationStatus {
+        <<enumeration>>
+        ACTIVE
+        SETTLED
+        CANCELLED
     }
-    class DailyTransferLimit {
-        +DailyTransferLimit(long remainingInCents)
-        +remainingInCents() long
-        +consume(long amountInCents) void
-    }
-    TransferService ..> RequestTransferCommand : przyjmuje
-    TransferService ..> TransferDecision : zwraca
-    TransferService --> AccountFunds : korzysta
-    TransferService --> DailyTransferLimit : korzysta
+
+    Account *-- AccountId
+    Account *-- Money : saldo
+    Account *-- "0..*" AccountOperation : historia
+    Account *-- "0..*" FundsReservation
+    AccountOperation *-- OperationId
+    AccountOperation *-- Money
+    AccountOperation --> OperationType
+    FundsReservation *-- ReservationId
+    FundsReservation *-- Money
+    FundsReservation --> ReservationStatus
 ```
 
-**Jak odczytać model:** jedna instancja `TransferService` jest powiązana z jednym rachunkiem źródłowym i jego pozostałym limitem. Komenda wskazuje odbiorcę i kwotę. Rachunek docelowy jest identyfikatorem; nie tworzymy jego lokalnego salda.
-
-**Konstruktor serwisu:** `TransferService(AccountFunds funds, DailyTransferLimit limit)`.
-
-### ✅ Odpowiedź · Od rozmowy do kodu
-
-| Element procesu | Odpowiedź |
-|---|---|
-| Aktor | Klient banku zlecający przelew |
-| Komenda | `RequestTransferCommand` — intencja przyjęcia dyspozycji przelewu |
-| Fakt pozytywny | `TransferAccepted` — dyspozycja została przyjęta |
-| Fakt negatywny | `TransferRejected` — dyspozycja została odrzucona z określonego powodu |
-
-**`TransferAccepted` nie oznacza `TransferExecuted`:** bank zaakceptował dyspozycję i zarezerwował środki, ale rozliczenie oraz przekazanie pieniędzy odbiorcy następują później.
-
-Model obejmuje pięć typów w pakiecie `pl.edu.banklab.transfers`: `TransferService`, `RequestTransferCommand`, `TransferDecision`, `AccountFunds` i `DailyTransferLimit`. Utwórz je zgodnie z diagramem przed uruchomieniem testów. Metoda `accept` może początkowo rzucać `UnsupportedOperationException`.
-
-> [!NOTE]
-> W kodzie zwracamy prostą decyzję `TransferDecision`. Nazwy `TransferAccepted` i `TransferRejected` opisują fakty domenowe — nie tworzymy dzisiaj osobnych klas zdarzeń ani mechanizmu ich publikacji.
+Diagram jest hipotezą do sprawdzenia testami. Nie wyznacza tabel bazy danych.
 
 ---
 
-## 4. 🧪 Implementuj zachowanie krok po kroku
+## 6. Praca z testami
 
-### ✍️ Zadanie 2 · Najpierw uruchom czerwony test
-
-Utwórz `src/test/java/pl/edu/banklab/transfers/TransferServiceTest.java` i wklej poniższy kod. Pliki produkcyjne umieść w `src/main/java/pl/edu/banklab/transfers/`.
-
-```java
-package pl.edu.banklab.transfers;
-
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-
-import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-class TransferServiceTest {
-    private final AccountFunds funds = new AccountFunds("ACC-1", true, 100_000L);
-    private final DailyTransferLimit limit = new DailyTransferLimit(60_000L);
-    private final TransferService service = new TransferService(funds, limit);
-
-    private RequestTransferCommand transfer(long amount) {
-        return new RequestTransferCommand("ACC-2", amount);
-    }
-
-    private void assertUnchanged() {
-        assertAll(
-            () -> assertEquals(100_000L, funds.availableInCents()),
-            () -> assertEquals(60_000L, limit.remainingInCents())
-        );
-    }
-
-    @Test
-    void acceptsTransferAndReservesFundsAndLimit() {
-        var result = service.accept(transfer(25_000L));
-        assertAll(
-            () -> assertEquals(TransferDecision.ACCEPTED, result),
-            () -> assertEquals(75_000L, funds.availableInCents()),
-            () -> assertEquals(35_000L, limit.remainingInCents())
-        );
-    }
-
-    @ParameterizedTest
-    @ValueSource(longs = {0L, -1L, -10_000L})
-    void rejectsNonPositiveAmountWithoutChangingState(long amount) {
-        assertEquals(TransferDecision.INVALID_AMOUNT, service.accept(transfer(amount)));
-        assertUnchanged();
-    }
-
-    @Test
-    void rejectsTransferToTheSameAccountWithoutChangingState() {
-        var command = new RequestTransferCommand("ACC-1", 10_000L);
-        assertEquals(TransferDecision.SAME_ACCOUNT, service.accept(command));
-        assertUnchanged();
-    }
-
-    @Test
-    void rejectsInactiveSourceAccountWithoutChangingState() {
-        var inactive = new AccountFunds("ACC-1", false, 100_000L);
-        var otherService = new TransferService(inactive, limit);
-        assertEquals(TransferDecision.ACCOUNT_INACTIVE,
-            otherService.accept(transfer(10_000L)));
-        assertAll(
-            () -> assertEquals(100_000L, inactive.availableInCents()),
-            () -> assertEquals(60_000L, limit.remainingInCents())
-        );
-    }
-
-    @Test
-    void rejectsInsufficientFundsBeforeCheckingLimit() {
-        // Kwota przekracza jednocześnie środki i limit.
-        assertEquals(TransferDecision.INSUFFICIENT_FUNDS,
-            service.accept(transfer(100_001L)));
-        assertUnchanged();
-    }
-
-    @Test
-    void rejectsExceededDailyLimitWithoutReservingFunds() {
-        assertEquals(TransferDecision.DAILY_LIMIT_EXCEEDED,
-            service.accept(transfer(60_001L)));
-        assertUnchanged();
-    }
-
-    @Test
-    void acceptsAmountEqualToRemainingLimit() {
-        assertEquals(TransferDecision.ACCEPTED, service.accept(transfer(60_000L)));
-        assertAll(
-            () -> assertEquals(40_000L, funds.availableInCents()),
-            () -> assertEquals(0L, limit.remainingInCents())
-        );
-    }
-
-    @Test
-    void acceptsAmountEqualToAvailableFunds() {
-        var smallAccount = new AccountFunds("ACC-1", true, 20_000L);
-        var otherService = new TransferService(smallAccount, limit);
-        assertEquals(TransferDecision.ACCEPTED,
-            otherService.accept(transfer(20_000L)));
-        assertAll(
-            () -> assertEquals(0L, smallAccount.availableInCents()),
-            () -> assertEquals(40_000L, limit.remainingInCents())
-        );
-    }
-
-    @Test
-    void subsequentTransferUsesRemainingLimit() {
-        assertEquals(TransferDecision.ACCEPTED, service.accept(transfer(40_000L)));
-        assertEquals(TransferDecision.DAILY_LIMIT_EXCEEDED,
-            service.accept(transfer(25_000L)));
-        assertAll(
-            () -> assertEquals(60_000L, funds.availableInCents()),
-            () -> assertEquals(20_000L, limit.remainingInCents())
-        );
-    }
-
-    @Test
-    void subsequentTransferUsesRemainingFunds() {
-        var smallAccount = new AccountFunds("ACC-1", true, 30_000L);
-        var otherService = new TransferService(smallAccount, limit);
-        assertEquals(TransferDecision.ACCEPTED,
-            otherService.accept(transfer(20_000L)));
-        assertEquals(TransferDecision.INSUFFICIENT_FUNDS,
-            otherService.accept(transfer(15_000L)));
-        assertAll(
-            () -> assertEquals(10_000L, smallAccount.availableInCents()),
-            () -> assertEquals(40_000L, limit.remainingInCents())
-        );
-    }
-
-    @Test
-    void validatesAmountBeforeAccountIdentity() {
-        var command = new RequestTransferCommand("ACC-1", 0L);
-        assertEquals(TransferDecision.INVALID_AMOUNT, service.accept(command));
-        assertUnchanged();
-    }
-
-    @Test
-    void validatesAccountIdentityBeforeActivity() {
-        var inactive = new AccountFunds("ACC-1", false, 100_000L);
-        var otherService = new TransferService(inactive, limit);
-        assertEquals(TransferDecision.SAME_ACCOUNT,
-            otherService.accept(new RequestTransferCommand("ACC-1", 10_000L)));
-        assertEquals(100_000L, inactive.availableInCents());
-        assertEquals(60_000L, limit.remainingInCents());
-    }
-
-    @Test
-    void validatesActivityBeforeFunds() {
-        var inactive = new AccountFunds("ACC-1", false, 100_000L);
-        var otherService = new TransferService(inactive, limit);
-        assertEquals(TransferDecision.ACCOUNT_INACTIVE,
-            otherService.accept(transfer(100_001L)));
-        assertEquals(100_000L, inactive.availableInCents());
-        assertEquals(60_000L, limit.remainingInCents());
-    }
-}
-```
-
-### 🪜 Kolejność pracy
-
-| Etap | Co uruchomić i zaimplementować |
-|---|---|
-| A | Pierwszy test: przyjęcie oraz zmniejszenie środków i limitu |
-| B | Testy niedodatniej kwoty i tego samego rachunku |
-| C | Test nieaktywnego rachunku |
-| D | Testy braku środków i kwoty równej dostępnym środkom |
-| E | Testy przekroczenia limitu i równości z limitem |
-| F | Testy kolejnych dyspozycji |
-| G | Testy kolejności walidacji i cały zestaw |
-
-Uruchamiaj wybrany test z IDE albo z głównego katalogu:
+Kod produkcyjny znajduje się w `src/main/java`, a testy w `src/test/java`. Najpierw uruchom:
 
 ```shell
-mvn -Dtest=TransferServiceTest#acceptsTransferAndReservesFundsAndLimit test
+cd bank-app
+mvn -pl bank-app-accounts-logic test
 ```
 
-Cały zestaw testów projektu:
+Zobaczysz zielony build z pominiętymi testami. Adnotacje `@Disabled` zawierają numery etapów. Odblokowuj testy w tej kolejności: najpierw etapy 1–4 z `MoneyTest`, a następnie etapy 5–12 z `AccountTest`. Usuń adnotację wyłącznie z bieżącego testu i doprowadź go do zielonego stanu przed przejściem dalej.
 
-```shell
-mvn test
-```
+1. Walidacja oraz równość `Money`.
+2. Niemutowalna arytmetyka pieniężna i jej przypadki błędne.
+3. Równość `Account` po `AccountId`.
+4. Uznanie rachunku i historia operacji.
+5. Rezerwacja oraz obliczanie dostępnych środków.
+6. Odmowa rezerwacji bez skutków ubocznych.
+7. Anulowanie, a następnie rozliczanie rezerwacji.
+8. Odrzucanie duplikatów i niedozwolonych przejść stanu.
+9. Ochrona kolekcji przed zmianą z zewnątrz.
 
-> [!TIP]
-> Najpierw sprawdź wszystkie reguły, dopiero potem zmień stan. Nie odejmuj środków przed weryfikacją limitu. Każdy test ma własne obiekty, ale kilka wywołań w jednym teście korzysta z tego samego stanu.
+Nie zmieniaj testów tylko po to, by zrobiły się zielone. Możesz dodawać testy brzegowe, szczególnie dla zera, duplikatów i cyklu życia rezerwacji.
 
-> [!NOTE]
-> `AccountFunds.reserve` i `DailyTransferLimit.consume` są operacjami pomocniczymi wykonywanymi po walidacji. Nie dodawaj publicznych setterów. Błędna dyspozycja ma zwracać decyzję odmowy z serwisu, a nie kończyć się wyjątkiem z konstruktora komendy.
+### Kryteria ukończenia
 
-✅ **Rezultat:** wszystkie testy przechodzą, nazwy odpowiadają językowi rozmowy, a odmowa nie zmienia stanu. Nie musisz tworzyć metody `main`.
+- `mvn -pl bank-app-accounts-logic test` kończy się sukcesem;
+- nie ma publicznego settera salda ani modyfikowalnej historii;
+- wyjątki mają komunikaty w języku domeny;
+- kod nie używa `double` do pieniędzy;
+- nazwy metod opisują intencje (`reserve`, `settle`, `cancel`), nie techniczną mutację;
+- `Account` zachowuje ID po każdej zmianie stanu.
 
 ---
-
-## 5. 🔬 Eksperyment · Bank zmienia zasady
-
-### 📋 Nowe wymaganie do samodzielnego eksperymentu
-
-Bank wprowadza dodatkowy **limit pojedynczego przelewu do odbiorcy niezaufanego: 200 EUR**. Dla odbiorców zaufanych ten dodatkowy limit nie obowiązuje. Nadal obowiązują wszystkie wcześniejsze reguły, w tym dostępne środki i limit dzienny.
-
-Nową regułę sprawdzamy **na końcu**. Kwota dokładnie 200 EUR jest dozwolona dla niezaufanego odbiorcy. Informacja o zaufaniu pochodzi z subdomeny Odbiorcy, a nie z formularza dyspozycji.
-
-### ✍️ Zadanie 3 · Małe rozszerzenie modelu
-
-1. Skopiuj diagram do `docs/transfer-model.md` i rozszerz go o interfejs `TrustedBeneficiaries` z metodą `boolean isTrusted(String targetAccountId)`. Serwis otrzymuje go przez konstruktor. Nie dodawaj pola `trusted` do komendy.
-2. Dodaj decyzję `UNTRUSTED_BENEFICIARY_LIMIT_EXCEEDED`.
-3. Napisz testy dla niezaufanego odbiorcy: **200 EUR — przyjęcie**, **200,01 EUR — odmowa bez zmiany stanu**.
-4. Napisz test przyjęcia **200,01 EUR** dla zaufanego odbiorcy i test potwierdzający, że nadal obowiązuje go limit dzienny.
-5. Zaimplementuj regułę. W testach użyj lambdy lub prostej implementacji interfejsu w pamięci.
-
-> [!WARNING]
-> Nowa reguła celowo zmienia warunki wcześniejszych testów. Ustaw w ich konfiguracji odbiorcę jako zaufanego, aby nadal sprawdzały pierwotne reguły. Zachowaj wcześniejsze asercje. Dodatkowy test powinien pokazać, że przy przekroczeniu obu limitów pierwszeństwo ma `DAILY_LIMIT_EXCEEDED`.
-
-**Do dyskusji:** dlaczego interfejs potrzebny przelewom znajduje się w projekcie przelewów, choć wiedza o zaufaniu pochodzi z innej subdomeny? W przyszłości kod subdomeny Odbiorcy może dostarczyć implementację tego kontraktu.
-
-✅ **Rezultat:** zmieniony diagram, nowe testy i rozszerzona logika.
-
