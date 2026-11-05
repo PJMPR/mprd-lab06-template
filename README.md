@@ -28,7 +28,7 @@ Po wykonaniu zadania potrafisz:
 
 ## 2. Czy historia operacji jest osobną subdomeną?
 
-**W tym ćwiczeniu — nie.** Historia zaksięgowanych uznań i obciążeń jest częścią języka oraz cyklu życia rachunku. Bez niej trudno odpowiedzieć, dlaczego saldo ma daną wartość. `AccountOperation` należy więc do subdomeny **Rachunki i środki**.
+Historia zaksięgowanych uznań i obciążeń jest częścią języka oraz cyklu życia rachunku. Bez niej trudno odpowiedzieć, dlaczego saldo ma daną wartość. `AccountOperation` należy więc do subdomeny **Rachunki i środki**.
 
 Granica może się zmienić. Osobny kontekst byłby uzasadniony, gdyby pojawiły się niezależne potrzeby: wieloletnie archiwum, raporty regulacyjne, wyszukiwanie operacji ze wszystkich produktów, generowanie wyciągów czy inny model retencji. Dzisiaj tego nie potrzebujemy. Model jest hipotezą, nie umową podpisaną z przyszłością.
 
