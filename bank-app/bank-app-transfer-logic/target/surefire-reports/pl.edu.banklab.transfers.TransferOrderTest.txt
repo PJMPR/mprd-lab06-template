@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: pl.edu.banklab.transfers.TransferOrderTest
 -------------------------------------------------------------------------------
-Tests run: 6, Failures: 0, Errors: 0, Skipped: 6, Time elapsed: 0.033 s -- in pl.edu.banklab.transfers.TransferOrderTest
+Tests run: 11, Failures: 0, Errors: 0, Skipped: 11, Time elapsed: 0.044 s -- in pl.edu.banklab.transfers.TransferOrderTest

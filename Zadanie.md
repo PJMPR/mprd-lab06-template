@@ -5,7 +5,7 @@
 > **Niezmienniki → granica spójności → Aggregate Root → testy → implementacja.**  
 > Tym razem nie dodajesz kolejnej funkcji banku. Porządkujesz granice istniejącego modelu tak, aby reguł biznesowych nie dało się ominąć.
 
-**Narzędzia:** Java 17+, Maven, JUnit 5, IDE.  
+**Narzędzia:** Java 17+, Maven, JUnit 5, Hamcrest, Mockito, IDE.  
 **Moduły:** `bank-app-accounts-logic` oraz `bank-app-transfer-logic`.
 
 Materiał towarzyszy wykładowi [DDD: agregaty i granice spójności](https://pjmpr.github.io/MPR-lectures/lectures/06-ddd-aggregates.html).
@@ -107,13 +107,14 @@ Aktualne testy opisują wcześniejsze reguły i muszą nadal przechodzić. Nowe 
 
 1. `TransferOrder` jest Aggregate Rootem identyfikowanym przez `TransferId`.
 2. Nowa dyspozycja ma stan `REQUESTED`.
-3. Przechowuje wyłącznie identyfikatory rachunków, a nie obiekty `Account` ani `AccountFunds`.
-4. Kwota musi być dodatnia, a rachunki źródłowy i docelowy muszą być różne.
-5. Oczekującą dyspozycję można rozstrzygnąć dokładnie raz: przyjąć albo odrzucić.
-6. Przyjęta dyspozycja ma stan `ACCEPTED` i nie ma powodu odmowy.
-7. Odrzucona dyspozycja ma stan `REJECTED` i przechowuje konkretny powód odmowy.
-8. `TransferDecision.ACCEPTED` nie jest poprawnym powodem odrzucenia.
-9. `TransferService` pozostaje serwisem domenowym sprawdzającym reguły wymagające danych z innych granic. Nie jest Aggregate Rootem.
+3. Identyfikator dyspozycji oraz identyfikatory rachunków są wymagane i nie mogą być puste.
+4. Przechowuje wyłącznie identyfikatory rachunków, a nie obiekty `Account`, `AccountFunds`, `DailyTransferLimit` ani `TrustedBeneficiaries`.
+5. Kwota musi być dodatnia, a rachunki źródłowy i docelowy muszą być różne.
+6. Oczekującą dyspozycję można rozstrzygnąć dokładnie raz: przyjąć albo odrzucić.
+7. Przyjęta dyspozycja ma stan `ACCEPTED` i nie ma powodu odmowy.
+8. Odrzucona dyspozycja ma stan `REJECTED` i przechowuje konkretny powód odmowy.
+9. Powód odmowy jest wymagany, a `TransferDecision.ACCEPTED` nie jest poprawnym powodem odrzucenia.
+10. `TransferService` pozostaje serwisem domenowym sprawdzającym reguły wymagające danych z innych granic. Nie jest Aggregate Rootem.
 
 > [!NOTE]
 > Przyjęcie dyspozycji nadal nie oznacza wykonania przelewu. Nie dodajemy księgowania, bazy danych, Springa ani mechanizmu zdarzeń. Celem jest świadome wyznaczenie granic.
@@ -340,6 +341,12 @@ Otwórz `TransferOrderTest` i usuwaj `@Disabled` z jednego testu naraz, zachowuj
 5. Przejście `REQUESTED → REJECTED` z powodem.
 6. Zakaz użycia `ACCEPTED` jako powodu odmowy.
 7. Zakaz ponownego rozstrzygnięcia zaakceptowanej lub odrzuconej dyspozycji.
+8. Walidacja wymaganych identyfikatorów.
+9. Zakaz przechowywania obiektów należących do innych granic.
+10. Obsługa każdego powodu odmowy i zakaz powodu `null`.
+11. Zapisanie w Aggregate Root decyzji wyliczonej przez `TransferService`.
+
+W testach granicy możesz użyć Hamcrest, aby czytelnie opisać dozwolone typy pól. Mockito wykorzystaj do zastąpienia portu `TrustedBeneficiaries`; nie mockuj samego `TransferOrder`, ponieważ to jego zachowanie jest przedmiotem testu.
 
 Nie dodawaj do `TransferOrder` pól typu `Account`, `AccountFunds`, `DailyTransferLimit` ani `TrustedBeneficiaries`. Te obiekty należą do innych odpowiedzialności lub dostarczają wiedzę potrzebną serwisowi domenowemu.
 

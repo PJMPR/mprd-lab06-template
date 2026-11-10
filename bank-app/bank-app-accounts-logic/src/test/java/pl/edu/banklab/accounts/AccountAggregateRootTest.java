@@ -50,6 +50,7 @@ class AccountAggregateRootTest {
         assertAll(
             () -> assertEquals(Money.pln(10_000), account.bookedBalance()),
             () -> assertEquals(Money.pln(10_000), account.availableFunds()),
+            () -> assertEquals(1, account.history().size()),
             () -> assertEquals(ReservationStatus.CANCELLED,
                 account.reservations().get(0).status())
         );
@@ -64,10 +65,16 @@ class AccountAggregateRootTest {
 
         account.settle(reservationId, new OperationId("OP-2"), "Płatność kartą");
 
+        var settlement = account.history().get(1);
+
         assertAll(
             () -> assertEquals(Money.pln(6_000), account.bookedBalance()),
             () -> assertEquals(Money.pln(6_000), account.availableFunds()),
             () -> assertEquals(2, account.history().size()),
+            () -> assertEquals(new OperationId("OP-2"), settlement.id()),
+            () -> assertEquals(OperationType.DEBIT, settlement.type()),
+            () -> assertEquals(Money.pln(4_000), settlement.amount()),
+            () -> assertEquals("Płatność kartą", settlement.description()),
             () -> assertEquals(ReservationStatus.SETTLED,
                 account.reservations().get(0).status())
         );
