@@ -1,6 +1,9 @@
 pl\edu\banklab\transfers\AccountFunds.class
 pl\edu\banklab\transfers\DailyTransferLimit.class
-pl\edu\banklab\transfers\TransferService.class
-pl\edu\banklab\transfers\RequestTransferCommand.class
+pl\edu\banklab\transfers\TransferId.class
+pl\edu\banklab\transfers\TransferOrder.class
 pl\edu\banklab\transfers\TrustedBeneficiaries.class
 pl\edu\banklab\transfers\TransferDecision.class
+pl\edu\banklab\transfers\TransferService.class
+pl\edu\banklab\transfers\TransferStatus.class
+pl\edu\banklab\transfers\RequestTransferCommand.class

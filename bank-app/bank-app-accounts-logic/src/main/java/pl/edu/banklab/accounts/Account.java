@@ -28,27 +28,44 @@ public final class Account {
     }
 
     public Money availableFunds() {
-        throw new UnsupportedOperationException("TODO: saldo pomniejszone o aktywne rezerwacje");
+        Money available = bookedBalance;
+        for (FundsReservation reservation : reservations) {
+            if (reservation.status() == ReservationStatus.ACTIVE) {
+                available = available.minus(reservation.amount());
+            }
+        }
+        return available;
     }
 
     public List<AccountOperation> history() {
-        return history;
+        return List.copyOf(history);
     }
 
     public List<FundsReservation> reservations() {
-        return reservations;
+        return List.copyOf(reservations);
     }
 
     public void credit(OperationId operationId, Money amount, String description) {
-        throw new UnsupportedOperationException("TODO: uznanie rachunku i zapis w historii");
+        requireUniqueOperationId(operationId);
+        AccountOperation operation = new AccountOperation(
+            operationId, OperationType.CREDIT, amount, description);
+        Money newBalance = bookedBalance.plus(amount);
+        bookedBalance = newBalance;
+        history.add(operation);
     }
 
     public void reserve(ReservationId reservationId, Money amount) {
-        throw new UnsupportedOperationException("TODO: rezerwacja dostępnych środków");
+        requireUniqueReservationId(reservationId);
+        FundsReservation reservation = new FundsReservation(reservationId, amount);
+        if (!amount.currency().equals(bookedBalance.currency())
+            || amount.amountInCents() > availableFunds().amountInCents()) {
+            throw new IllegalStateException("Brak wystarczających dostępnych środków");
+        }
+        reservations.add(reservation);
     }
 
     public void cancel(ReservationId reservationId) {
-        throw new UnsupportedOperationException("TODO: anulowanie aktywnej rezerwacji");
+        findReservation(reservationId).cancel();
     }
 
     public void settle(
@@ -56,16 +73,49 @@ public final class Account {
         OperationId operationId,
         String description
     ) {
-        throw new UnsupportedOperationException("TODO: rozliczenie rezerwacji i zapis obciążenia");
+        requireUniqueOperationId(operationId);
+        FundsReservation reservation = findReservation(reservationId);
+        if (reservation.status() != ReservationStatus.ACTIVE) {
+            throw new IllegalStateException("Rozliczyć można tylko aktywną rezerwację");
+        }
+        AccountOperation operation = new AccountOperation(
+            operationId, OperationType.DEBIT, reservation.amount(), description);
+        Money newBalance = bookedBalance.minus(reservation.amount());
+        reservation.settle();
+        bookedBalance = newBalance;
+        history.add(operation);
+    }
+
+    private FundsReservation findReservation(ReservationId reservationId) {
+        Objects.requireNonNull(reservationId, "Identyfikator rezerwacji jest wymagany");
+        return reservations.stream()
+            .filter(reservation -> reservation.id().equals(reservationId))
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException(
+                "Nie znaleziono rezerwacji: " + reservationId.value()));
+    }
+
+    private void requireUniqueOperationId(OperationId operationId) {
+        Objects.requireNonNull(operationId, "Identyfikator operacji jest wymagany");
+        if (history.stream().anyMatch(operation -> operation.id().equals(operationId))) {
+            throw new IllegalArgumentException("Operacja o tym identyfikatorze już istnieje");
+        }
+    }
+
+    private void requireUniqueReservationId(ReservationId reservationId) {
+        Objects.requireNonNull(reservationId, "Identyfikator rezerwacji jest wymagany");
+        if (reservations.stream().anyMatch(reservation -> reservation.id().equals(reservationId))) {
+            throw new IllegalArgumentException("Rezerwacja o tym identyfikatorze już istnieje");
+        }
     }
 
     @Override
     public boolean equals(Object other) {
-        return this == other;
+        return this == other || other instanceof Account account && id.equals(account.id);
     }
 
     @Override
     public int hashCode() {
-        return System.identityHashCode(this);
+        return id.hashCode();
     }
 }

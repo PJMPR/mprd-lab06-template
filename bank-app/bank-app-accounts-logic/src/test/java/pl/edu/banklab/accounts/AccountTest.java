@@ -1,7 +1,6 @@
 package pl.edu.banklab.accounts;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Disabled;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -12,7 +11,6 @@ class AccountTest {
     private final Account account = Account.open(new AccountId("PL-001"));
 
     @Test
-    @Disabled("Etap 5: sprawdza, że równość encji Account zależy wyłącznie od AccountId")
     void entityEqualityDependsOnlyOnAccountId() {
         var sameAccount = Account.open(new AccountId("PL-001"));
         var anotherAccount = Account.open(new AccountId("PL-002"));
@@ -22,7 +20,6 @@ class AccountTest {
     }
 
     @Test
-    @Disabled("Etap 6: sprawdza, że uznanie zwiększa saldo i dopisuje operację CREDIT do historii")
     void creditsAccountAndAppendsOperationHistory() {
         account.credit(new OperationId("OP-1"), Money.pln(10_000), "Wpłata");
 
@@ -35,7 +32,6 @@ class AccountTest {
     }
 
     @Test
-    @Disabled("Etap 7: sprawdza, że rezerwacja zmniejsza dostępne środki, ale nie saldo księgowe")
     void reservationReducesAvailableFundsButNotBookedBalance() {
         creditTenThousand();
 
@@ -50,7 +46,6 @@ class AccountTest {
     }
 
     @Test
-    @Disabled("Etap 8: sprawdza odrzucenie rezerwacji większej niż dostępne środki bez zmiany stanu")
     void rejectsReservationAboveAvailableFundsWithoutChangingState() {
         creditTenThousand();
 
@@ -65,7 +60,6 @@ class AccountTest {
     }
 
     @Test
-    @Disabled("Etap 9: sprawdza, że anulowanie rezerwacji przywraca dostępne środki bez nowego księgowania")
     void cancellationRestoresAvailableFundsWithoutAddingBookedOperation() {
         creditTenThousand();
         account.reserve(new ReservationId("RES-1"), Money.pln(4_000));
@@ -81,7 +75,6 @@ class AccountTest {
     }
 
     @Test
-    @Disabled("Etap 10: sprawdza, że rozliczenie rezerwacji zmniejsza saldo i zapisuje operację DEBIT")
     void settlementDebitsBookedBalanceAndAppendsHistory() {
         creditTenThousand();
         account.reserve(new ReservationId("RES-1"), Money.pln(4_000));
@@ -98,7 +91,6 @@ class AccountTest {
     }
 
     @Test
-    @Disabled("Etap 11: sprawdza odrzucenie powtórzonych identyfikatorów i ponownej zmiany zakończonej rezerwacji")
     void rejectsDuplicateIdentifiersAndSecondReservationTransition() {
         creditTenThousand();
         account.reserve(new ReservationId("RES-1"), Money.pln(1_000));
@@ -116,7 +108,6 @@ class AccountTest {
     }
 
     @Test
-    @Disabled("Etap 12: sprawdza, że historia operacji i lista rezerwacji są tylko do odczytu")
     void exposesUnmodifiableHistoryAndReservations() {
         creditTenThousand();
         account.reserve(new ReservationId("RES-1"), Money.pln(1_000));

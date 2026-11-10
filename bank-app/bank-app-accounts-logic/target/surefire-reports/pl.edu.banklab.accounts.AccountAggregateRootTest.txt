@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: pl.edu.banklab.accounts.AccountAggregateRootTest
+-------------------------------------------------------------------------------
+Tests run: 5, Failures: 0, Errors: 0, Skipped: 5, Time elapsed: 0.034 s -- in pl.edu.banklab.accounts.AccountAggregateRootTest

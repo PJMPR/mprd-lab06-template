@@ -8,6 +8,9 @@ public record Money(long amountInCents, Currency currency) {
 
     public Money {
         Objects.requireNonNull(currency, "Waluta jest wymagana");
+        if (amountInCents < 0) {
+            throw new IllegalArgumentException("Kwota nie może być ujemna");
+        }
     }
 
     public static Money pln(long amountInCents) {
@@ -15,24 +18,26 @@ public record Money(long amountInCents, Currency currency) {
     }
 
     public Money plus(Money other) {
-        throw new UnsupportedOperationException("TODO: dodawanie kwot w tej samej walucie");
+        requireSameCurrency(other);
+        return new Money(Math.addExact(amountInCents, other.amountInCents), currency);
     }
 
     public Money minus(Money other) {
-        throw new UnsupportedOperationException("TODO: odejmowanie bez tworzenia kwoty ujemnej");
+        requireSameCurrency(other);
+        if (amountInCents < other.amountInCents) {
+            throw new IllegalArgumentException("Wynik odejmowania nie może być ujemny");
+        }
+        return new Money(amountInCents - other.amountInCents, currency);
     }
 
     public boolean isZero() {
         return amountInCents == 0;
     }
 
-    @Override
-    public boolean equals(Object other) {
-        return this == other;
-    }
-
-    @Override
-    public int hashCode() {
-        return System.identityHashCode(this);
+    private void requireSameCurrency(Money other) {
+        Objects.requireNonNull(other, "Druga kwota jest wymagana");
+        if (!currency.equals(other.currency)) {
+            throw new IllegalArgumentException("Nie można wykonywać działań na kwotach w różnych walutach");
+        }
     }
 }

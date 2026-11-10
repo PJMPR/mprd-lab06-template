@@ -29,11 +29,19 @@ public final class FundsReservation {
     }
 
     public void cancel() {
-        throw new UnsupportedOperationException("TODO: anulowanie wyłącznie aktywnej rezerwacji");
+        requireActive();
+        status = ReservationStatus.CANCELLED;
     }
 
     public void settle() {
-        throw new UnsupportedOperationException("TODO: rozliczenie wyłącznie aktywnej rezerwacji");
+        requireActive();
+        status = ReservationStatus.SETTLED;
+    }
+
+    private void requireActive() {
+        if (status != ReservationStatus.ACTIVE) {
+            throw new IllegalStateException("Tylko aktywna rezerwacja może zmienić stan");
+        }
     }
 
     @Override

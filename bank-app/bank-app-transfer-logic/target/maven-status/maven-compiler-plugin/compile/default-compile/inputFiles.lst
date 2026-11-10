@@ -1,6 +1,9 @@
-C:\PJATK\git\mprd-lab05-template\bank-app\bank-app-transfer-logic\src\main\java\pl\edu\banklab\transfers\AccountFunds.java
-C:\PJATK\git\mprd-lab05-template\bank-app\bank-app-transfer-logic\src\main\java\pl\edu\banklab\transfers\DailyTransferLimit.java
-C:\PJATK\git\mprd-lab05-template\bank-app\bank-app-transfer-logic\src\main\java\pl\edu\banklab\transfers\RequestTransferCommand.java
-C:\PJATK\git\mprd-lab05-template\bank-app\bank-app-transfer-logic\src\main\java\pl\edu\banklab\transfers\TransferDecision.java
-C:\PJATK\git\mprd-lab05-template\bank-app\bank-app-transfer-logic\src\main\java\pl\edu\banklab\transfers\TransferService.java
-C:\PJATK\git\mprd-lab05-template\bank-app\bank-app-transfer-logic\src\main\java\pl\edu\banklab\transfers\TrustedBeneficiaries.java
+C:\PJATK\git\mprd-lab06-template\bank-app\bank-app-transfer-logic\src\main\java\pl\edu\banklab\transfers\AccountFunds.java
+C:\PJATK\git\mprd-lab06-template\bank-app\bank-app-transfer-logic\src\main\java\pl\edu\banklab\transfers\DailyTransferLimit.java
+C:\PJATK\git\mprd-lab06-template\bank-app\bank-app-transfer-logic\src\main\java\pl\edu\banklab\transfers\RequestTransferCommand.java
+C:\PJATK\git\mprd-lab06-template\bank-app\bank-app-transfer-logic\src\main\java\pl\edu\banklab\transfers\TransferDecision.java
+C:\PJATK\git\mprd-lab06-template\bank-app\bank-app-transfer-logic\src\main\java\pl\edu\banklab\transfers\TransferId.java
+C:\PJATK\git\mprd-lab06-template\bank-app\bank-app-transfer-logic\src\main\java\pl\edu\banklab\transfers\TransferOrder.java
+C:\PJATK\git\mprd-lab06-template\bank-app\bank-app-transfer-logic\src\main\java\pl\edu\banklab\transfers\TransferService.java
+C:\PJATK\git\mprd-lab06-template\bank-app\bank-app-transfer-logic\src\main\java\pl\edu\banklab\transfers\TransferStatus.java
+C:\PJATK\git\mprd-lab06-template\bank-app\bank-app-transfer-logic\src\main\java\pl\edu\banklab\transfers\TrustedBeneficiaries.java

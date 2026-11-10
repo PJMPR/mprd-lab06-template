@@ -1,2 +1,3 @@
 pl\edu\banklab\accounts\AccountTest.class
 pl\edu\banklab\accounts\MoneyTest.class
+pl\edu\banklab\accounts\AccountAggregateRootTest.class
